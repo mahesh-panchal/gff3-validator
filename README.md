@@ -1,5 +1,8 @@
 # GFF3 validator
 
+> [!IMPORTANT]  
+> This tool is still in development.
+
 A GFF3 validator to prevalidate GFF3 files before conversion to EMBL flatfile format and ENA submission.
 
 ## Problem
