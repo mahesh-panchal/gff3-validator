@@ -18,7 +18,7 @@ fn main() -> io::Result<()> {
     let args = Cli::parse();
     println!("GFF3 validation begun.");
 
-    let mut reader = File::open(args.path)
+    let mut reader = File::open(&args.path)
         .map(BufReader::new)
         .map(gff::io::Reader::new)?;
 
