@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "seqid": { "type": "string" },
+    "source": { "type": "string" },
+    "type": { "type": "string" },
+    "start": { "type": "integer" },
+    "end": { "type": "integer" },
+    "score": { "type": "number" },
+    "strand": { "type": "string" },
+    "phase": { "type": "string" },
+    "attributes": { "type": "object" }
+  },
+  "required": ["seqid", "source", "type", "start", "end"]
+}
