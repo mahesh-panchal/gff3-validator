@@ -1,4 +1,5 @@
 use std::{
+    fs,
     fs::File,
     io::{self, BufReader},
 };
@@ -8,6 +9,8 @@ use noodles::gff::Record;
 use noodles::gff::record::Strand;
 use noodles::gff::record::Phase;
 use serde::Serialize;
+use jsonschema::{Draft, JSONSchema};
+use serde_json::Value;
 
 // Note: Might achieve speed up with Tokio library.
 
@@ -15,7 +18,8 @@ use serde::Serialize;
 #[derive(Parser)]
 struct Cli {
     /// The path to the GGF3 file to read
-    path: std::path::PathBuf,
+    gff3: std::path::PathBuf,
+    json_schema: std::path::PathBuf,
 }
 
 #[derive(Serialize)]
@@ -81,11 +85,20 @@ fn main() -> io::Result<()> {
     let args = Cli::parse();
     println!("GFF3 validation begun.");
 
-    let mut reader = File::open(&args.path)
+    let mut gff3_reader = File::open(&args.gff3)
         .map(BufReader::new)
         .map(gff::io::Reader::new)?;
+    let schema_data = fs::read_to_string(&args.json_schema).unwrap();
+    let schema_json: Value = serde_json::from_str(&schema_data)?;
 
-    for result in reader.records() {
+    // Compile the schema
+    let compiled_schema = JSONSchema::options()
+        .with_draft(Draft::Draft7)
+        .compile(&schema_json)
+        .expect("A valid schema");
+
+    // Validate gff3 records against schema
+    for result in gff3_reader.records() {
         let record = result?;
 
         // println!(
@@ -96,7 +109,16 @@ fn main() -> io::Result<()> {
         // );
         let my_record: MyGffRecord = record.into();
         let json = serde_json::to_string(&my_record).unwrap();
+        let data_json: Value = serde_json::from_str(&json)?;
+        
         println!("{}", json);
+        let validation_result = compiled_schema.validate(&data_json);
+        if let Err(errors) = validation_result {
+            for error in errors {
+                println!("Validation error: {}", error);
+                println!("Instance path: {}", error.instance_path);
+            }
+        }
     }
 
     Ok(())
