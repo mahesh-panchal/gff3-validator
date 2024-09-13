@@ -1,13 +1,15 @@
 use clap::Parser;
 use jsonschema::{Draft, JSONSchema};
-use noodles::gff;
-use noodles::gff::record::{Phase, Strand};
-use noodles::gff::Record;
+use noodles::gff::{
+    self,
+    record::{Attributes, Phase, Strand},
+    Record,
+};
 use serde::Serialize;
 use serde_json::Value;
 use std::{
-    fs,
-    fs::File,
+    collections::HashMap,
+    fs::{self, File},
     io::{self, BufReader},
 };
 
@@ -32,7 +34,7 @@ struct MyGffRecord {
     score: Option<f32>,
     strand: Option<char>,
     phase: Option<u8>,
-    attribute: String,
+    attribute: HashMap<String, String>,
 }
 
 pub trait StrandExt {
@@ -65,6 +67,20 @@ impl PhaseExt for Option<Phase> {
     }
 }
 
+pub trait AttributesExt {
+    fn to_hashmap(&self) -> HashMap<String, String>;
+}
+
+impl AttributesExt for Attributes {
+    fn to_hashmap(&self) -> HashMap<String, String> {
+        let mut map = HashMap::new();
+        for (key, value) in self.iter() {
+            map.insert(key.to_string(), value.to_string());
+        }
+        map
+    }
+}
+
 impl From<Record> for MyGffRecord {
     fn from(record: Record) -> Self {
         MyGffRecord {
@@ -76,7 +92,7 @@ impl From<Record> for MyGffRecord {
             score: record.score(),
             strand: record.strand().to_option_char(),
             phase: record.phase().to_option_u8(),
-            attribute: record.attributes().to_string(),
+            attribute: record.attributes().to_hashmap(),
         }
     }
 }
@@ -111,9 +127,10 @@ fn main() -> io::Result<()> {
         let json = serde_json::to_string(&my_record).unwrap();
         let data_json: Value = serde_json::from_str(&json)?;
 
-        println!("{}", json);
+        // println!("{}", json);
         let validation_result = compiled_schema.validate(&data_json);
         if let Err(errors) = validation_result {
+            println!("{}", json);
             for error in errors {
                 println!("Validation error: {}", error);
                 println!("Instance path: {}", error.instance_path);
